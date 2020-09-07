@@ -1,11 +1,15 @@
 package org.jetbrains.dokka.hugo
 
 import org.jetbrains.dokka.CoreExtensions
+import org.jetbrains.dokka.base.DokkaBase
 import org.jetbrains.dokka.base.renderers.PackageListCreator
 import org.jetbrains.dokka.base.renderers.RootCreator
+import org.jetbrains.dokka.base.resolvers.local.DokkaLocationProvider
+import org.jetbrains.dokka.base.resolvers.local.LocationProviderFactory
 import org.jetbrains.dokka.base.resolvers.shared.RecognizedLinkFormat
 import org.jetbrains.dokka.gfm.CommonmarkRenderer
 import org.jetbrains.dokka.gfm.GfmPlugin
+import org.jetbrains.dokka.gfm.MarkdownLocationProviderFactory
 import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.plugability.DokkaContext
 import org.jetbrains.dokka.plugability.DokkaPlugin
@@ -19,10 +23,18 @@ class HugoPlugin : DokkaPlugin() {
 
     val hugoPreprocessors by extensionPoint<PageTransformer>()
 
+    private val dokkaBase by lazy { plugin<DokkaBase>() }
+
     val renderer by extending {
         (CoreExtensions.renderer
                 providing { HugoRenderer(it) }
                 override plugin<GfmPlugin>().renderer)
+    }
+
+    val locationProvider by extending {
+        (dokkaBase.locationProviderFactory
+                providing { HugoLocationProviderFactory(it) }
+                override plugin<GfmPlugin>().locationProvider)
     }
 
     val rootCreator by extending {
@@ -55,17 +67,17 @@ class HugoRenderer(
     }
 
     private fun appendFrontMatter(page: ContentPage, builder: StringBuilder) {
-        builder.append("title = \"${page.name}\"")
-        builder.append("draft = false")
-        builder.append("toc = false")
-        builder.append("type = \"reference\"")
+        builder.append("title = \"${page.name}\"\n")
+        builder.append("draft = false\n")
+        builder.append("toc = false\n")
+        builder.append("type = \"reference\"\n")
 
         // Add menu item for each package
         if (isPackage(page)) {
-            builder.append("linktitle = \"${page.name}\"")
-            builder.append("[menu.docs]")
-            builder.append("  parent = \"hw-security-reference\"")
-            builder.append("  weight = 1")
+            builder.append("linktitle = \"${page.name}\"\n")
+            builder.append("[menu.docs]\n")
+            builder.append("  parent = \"hw-security-reference\"\n")
+            builder.append("  weight = 1\n")
         }
     }
 
@@ -75,4 +87,17 @@ class HugoRenderer(
         }
         return false
     }
+}
+
+class HugoLocationProviderFactory(val context: DokkaContext) : LocationProviderFactory {
+
+    override fun getLocationProvider(pageNode: RootPageNode) =
+        HugoLocationProvider(pageNode, context)
+}
+
+class HugoLocationProvider(
+    pageGraphRoot: RootPageNode,
+    dokkaContext: DokkaContext
+) : DokkaLocationProvider(pageGraphRoot, dokkaContext, ".md") {
+    override val PAGE_WITH_CHILDREN_SUFFIX = "_index"
 }
