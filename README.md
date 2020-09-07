@@ -1,10 +1,10 @@
 # Dokka Hugo Plugin
 
-Extends Dokka with a Hugo Plugin.
+Extends [Dokka](https://github.com/Kotlin/dokka) with a Hugo Plugin.
 
 ## Build
 
-./gradlew plugins:hugo:build
+``./gradlew plugins:hugo:build``
 
 ## Requirements
 
